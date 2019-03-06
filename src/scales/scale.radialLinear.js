@@ -493,7 +493,7 @@ module.exports = function(Chart) {
 						}
 
 						if (tickOpts.display) {
-							var tickFontColor = valueOrDefault(tickOpts.fontColor, globalDefaults.defaultFontColor);
+							var tickFontColor = valueOrDefault(tickOpts.fontColor instanceof Array ? tickOpts.fontColor[index] : tickOpts.fontColor, globalDefaults.defaultFontColor);
 							ctx.font = tickLabelFont;
 
 							ctx.save();
