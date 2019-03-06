@@ -23,7 +23,9 @@ module.exports = function(Chart) {
 		},
 
 		gridLines: {
-			circular: false
+			circular: false,
+			borderDash: [],
+			borderDashOffset: 0.0
 		},
 
 		// label settings
@@ -31,8 +33,7 @@ module.exports = function(Chart) {
 			// Boolean - Show a backdrop to the scale label
 			showLabelBackdrop: true,
 
-			// String - The colour of the label backdrop
-			//backdropColor: 'rgba(255,255,255,0.75)',
+			// Array - The colours of the labels backdrops
 			backdropColor: [],
 
 			// Number - The backdrop padding above & below the label in pixels
@@ -290,6 +291,7 @@ module.exports = function(Chart) {
 			// Draw circular arcs between the points
 			ctx.beginPath();
 			ctx.arc(scale.xCenter, scale.yCenter, radius, 0, Math.PI * 2);
+			ctx.setLineDash(gridLineOpts.borderDash, gridLineOpts.borderDashOffset);
 			ctx.closePath();
 			ctx.stroke();
 		} else {
