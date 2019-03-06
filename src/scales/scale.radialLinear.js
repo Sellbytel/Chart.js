@@ -32,7 +32,8 @@ module.exports = function(Chart) {
 			showLabelBackdrop: true,
 
 			// String - The colour of the label backdrop
-			backdropColor: 'rgba(255,255,255,0.75)',
+			//backdropColor: 'rgba(255,255,255,0.75)',
+			backdropColor: [],
 
 			// Number - The backdrop padding above & below the label in pixels
 			backdropPaddingY: 2,
@@ -501,7 +502,7 @@ module.exports = function(Chart) {
 
 							if (tickOpts.showLabelBackdrop) {
 								var labelWidth = ctx.measureText(label).width;
-								ctx.fillStyle = tickOpts.backdropColor;
+								ctx.fillStyle = tickOpts.backdropColor[index] || 'rgba(255,255,255,0.75)';
 								ctx.fillRect(
 									-labelWidth / 2 - tickOpts.backdropPaddingX,
 									-yCenterOffset - tickFontSize / 2 - tickOpts.backdropPaddingY,
