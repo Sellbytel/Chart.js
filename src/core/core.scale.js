@@ -690,7 +690,8 @@ module.exports = Element.extend({
 		var isHorizontal = me.isHorizontal();
 
 		var ticks = optionTicks.autoSkip ? me._autoSkip(me.getTicks()) : me.getTicks();
-		var tickFontColor = helpers.valueOrDefault(optionTicks.fontColor, globalDefaults.defaultFontColor);
+
+		//var tickFontColor = helpers.valueOrDefault(optionTicks.fontColor, globalDefaults.defaultFontColor);
 		var tickFont = parseFontOptions(optionTicks);
 		var majorTickFontColor = helpers.valueOrDefault(optionMajorTicks.fontColor, globalDefaults.defaultFontColor);
 		var majorTickFont = parseFontOptions(optionMajorTicks);
@@ -701,7 +702,7 @@ module.exports = Element.extend({
 		var scaleLabelFont = parseFontOptions(scaleLabel);
 		var scaleLabelPadding = helpers.options.toPadding(scaleLabel.padding);
 		var labelRotationRadians = helpers.toRadians(me.labelRotation);
-
+		var tickFontColor = globalDefaults.defaultFontColor;
 		var itemsToDraw = [];
 
 		var axisWidth = me.options.gridLines.lineWidth;
@@ -722,13 +723,15 @@ module.exports = Element.extend({
 				// Draw the first index specially
 				lineWidth = gridLines.zeroLineWidth;
 				lineColor = gridLines.zeroLineColor;
-				borderDash = gridLines.zeroLineBorderDash;
-				borderDashOffset = gridLines.zeroLineBorderDashOffset;
+				borderDash = gridLines.zeroLineBorderDash || [];
+				borderDashOffset = gridLines.zeroLineBorderDashOffset || 0.0;
 			} else {
 				lineWidth = helpers.valueAtIndexOrDefault(gridLines.lineWidth, index);
 				lineColor = helpers.valueAtIndexOrDefault(gridLines.color, index);
-				borderDash = helpers.valueOrDefault(gridLines.borderDash, globalDefaults.borderDash);
-				borderDashOffset = helpers.valueOrDefault(gridLines.borderDashOffset, globalDefaults.borderDashOffset);
+				//borderDash = helpers.valueOrDefault(gridLines.borderDash, globalDefaults.borderDash);
+				//borderDashOffset = helpers.valueOrDefault(gridLines.borderDashOffset, globalDefaults.borderDashOffset);
+				borderDash = gridLines.borderDash || [];
+				borderDashOffset = gridLines.borderDashOffset || 0.0;
 			}
 
 			// Common properties
@@ -818,11 +821,16 @@ module.exports = Element.extend({
 		});
 
 		// Draw all of the tick labels, tick marks, and grid lines at the correct places
+		var contador = 0;
 		helpers.each(itemsToDraw, function(itemToDraw) {
-			if (gridLines.display) {
+
+			var glWidth = itemToDraw.glWidth;
+			var glColor = itemToDraw.glColor;
+
+			if (gridLines.display && glWidth && glColor) {
 				context.save();
-				context.lineWidth = itemToDraw.glWidth;
-				context.strokeStyle = itemToDraw.glColor;
+				context.lineWidth = glWidth;
+				context.strokeStyle = glColor;
 				if (context.setLineDash) {
 					context.setLineDash(itemToDraw.glBorderDash);
 					context.lineDashOffset = itemToDraw.glBorderDashOffset;
@@ -850,6 +858,36 @@ module.exports = Element.extend({
 				context.translate(itemToDraw.labelX, itemToDraw.labelY);
 				context.rotate(itemToDraw.rotation);
 				context.font = itemToDraw.major ? majorTickFont.font : tickFont.font;
+				if (optionTicks.showLabelBackdrop) {
+					var backdropFontColor = globalDefaults.defaultFontColor;
+					if (Object.prototype.toString.call( optionTicks.backdropColor ) === '[object Array]') {
+						backdropFontColor = helpers.valueOrDefault(optionTicks.backdropColor[contador], globalDefaults.defaultFontColor);
+					} else {
+						backdropFontColor = helpers.valueOrDefault(optionTicks.backdropColor, globalDefaults.defaultFontColor);
+					}
+					//alert (contador + " " + backdropFontColor + " " + itemToDraw.label);
+					//ctx.fillStyle = tickOpts.backdropColor;
+					var labelWidth = context.measureText(itemToDraw.label).width;
+					context.fillStyle = backdropFontColor;
+
+					context.fillRect(
+						labelWidth + 4,
+						- tickFont.size / 2 - 2,
+						- labelWidth - 8,
+						tickFont.size + 2 * 2
+					);
+
+					//alert ( optionTicks.backdropPaddingX);
+
+				}
+
+				if (Object.prototype.toString.call( optionTicks.fontColor) === '[object Array]') {
+					tickFontColor = helpers.valueOrDefault(optionTicks.fontColor[contador], globalDefaults.defaultFontColor);
+				} else {
+					tickFontColor = helpers.valueOrDefault(optionTicks.fontColor, globalDefaults.defaultFontColor);
+				}
+
+				contador++;
 				context.fillStyle = itemToDraw.major ? majorTickFontColor : tickFontColor;
 				context.textBaseline = itemToDraw.textBaseline;
 				context.textAlign = itemToDraw.textAlign;
@@ -862,6 +900,7 @@ module.exports = Element.extend({
 
 					for (var i = 0; i < lineCount; ++i) {
 						// We just make sure the multiline element is a string here..
+						context.fillStyle = itemToDraw.major ? majorTickFontColor : tickFontColor
 						context.fillText('' + label[i], 0, y);
 						// apply same lineSpacing as calculated @ L#320
 						y += lineHeight;

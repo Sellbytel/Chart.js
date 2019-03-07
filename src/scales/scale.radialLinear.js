@@ -242,26 +242,34 @@ module.exports = function(Chart) {
 		var ctx = scale.ctx;
 		var opts = scale.options;
 		var angleLineOpts = opts.angleLines;
+		var gridLineOpts = opts.gridLines;
 		var pointLabelOpts = opts.pointLabels;
 
-		ctx.lineWidth = angleLineOpts.lineWidth;
-		ctx.strokeStyle = angleLineOpts.color;
+		var lineWidth = helpers.valueOrDefault(angleLineOpts.lineWidth, gridLineOpts.lineWidth);
+		var lineColor = helpers.valueOrDefault(angleLineOpts.color, gridLineOpts.color);
+
+		ctx.save();
+		ctx.lineWidth = lineWidth;
+		ctx.strokeStyle = lineColor;
+		if (ctx.setLineDash) {
+			ctx.setLineDash(helpers.valueOrDefault(angleLineOpts.borderDash, gridLineOpts.borderDash) || []);
+			ctx.lineDashOffset = helpers.valueOrDefault(angleLineOpts.borderDashOffset, gridLineOpts.borderDashOffset) || 0.0;
+		}
 
 		var outerDistance = scale.getDistanceFromCenterForValue(opts.ticks.reverse ? scale.min : scale.max);
 
 		// Point Label Font
 		var plFont = getPointLabelFontOptions(scale);
-
+		ctx.font = plFont.font;
 		ctx.textBaseline = 'top';
 
 		for (var i = getValueCount(scale) - 1; i >= 0; i--) {
-			if (angleLineOpts.display) {
+			if (angleLineOpts.display && lineWidth && lineColor) {
 				var outerPosition = scale.getPointPosition(i, outerDistance);
 				ctx.beginPath();
 				ctx.moveTo(scale.xCenter, scale.yCenter);
 				ctx.lineTo(outerPosition.x, outerPosition.y);
 				ctx.stroke();
-				ctx.closePath();
 			}
 
 			if (pointLabelOpts.display) {
@@ -270,7 +278,6 @@ module.exports = function(Chart) {
 
 				// Keep this in loop since we may support array properties here
 				var pointLabelFontColor = helpers.valueAtIndexOrDefault(pointLabelOpts.fontColor, i, globalDefaults.defaultFontColor);
-				ctx.font = plFont.font;
 				ctx.fillStyle = pointLabelFontColor;
 
 				var angleRadians = scale.getIndexAngle(i);
@@ -280,30 +287,38 @@ module.exports = function(Chart) {
 				fillText(ctx, scale.pointLabels[i] || '', pointLabelPosition, plFont.size);
 			}
 		}
+		ctx.restore();
 	}
 
 	function drawRadiusLine(scale, gridLineOpts, radius, index) {
 		var ctx = scale.ctx;
-		ctx.strokeStyle = helpers.valueAtIndexOrDefault(gridLineOpts.color, index - 1);
-		ctx.lineWidth = helpers.valueAtIndexOrDefault(gridLineOpts.lineWidth, index - 1);
+		var circular = gridLineOpts.circular;
+		var valueCount = getValueCount(scale);
+		var lineColor = helpers.valueAtIndexOrDefault(gridLineOpts.color, index - 1);
+		var lineWidth = helpers.valueAtIndexOrDefault(gridLineOpts.lineWidth, index - 1);
+		var pointPosition;
 
-		if (scale.options.gridLines.circular) {
+		if ((!circular && !valueCount) || !lineColor || !lineWidth) {
+			return;
+		}
+
+		ctx.save();
+		ctx.strokeStyle = lineColor;
+		ctx.lineWidth = lineWidth;
+		if (ctx.setLineDash) {
+			ctx.setLineDash(gridLineOpts.borderDash || []);
+			ctx.lineDashOffset = gridLineOpts.borderDashOffset || 0.0;
+		}
+
+		ctx.beginPath();
+		if (circular) {
 			// Draw circular arcs between the points
-			ctx.beginPath();
+
 			ctx.arc(scale.xCenter, scale.yCenter, radius, 0, Math.PI * 2);
-			ctx.setLineDash(gridLineOpts.borderDash, gridLineOpts.borderDashOffset);
-			ctx.closePath();
-			ctx.stroke();
+
 		} else {
 			// Draw straight lines connecting each index
-			var valueCount = getValueCount(scale);
-
-			if (valueCount === 0) {
-				return;
-			}
-
-			ctx.beginPath();
-			var pointPosition = scale.getPointPosition(0, radius);
+			pointPosition = scale.getPointPosition(0, radius);
 			ctx.moveTo(pointPosition.x, pointPosition.y);
 
 			for (var i = 1; i < valueCount; i++) {
@@ -311,9 +326,10 @@ module.exports = function(Chart) {
 				ctx.lineTo(pointPosition.x, pointPosition.y);
 			}
 
-			ctx.closePath();
-			ctx.stroke();
 		}
+		ctx.closePath();
+		ctx.stroke();
+		ctx.restore();
 	}
 
 	function numberOrZero(param) {
@@ -495,7 +511,11 @@ module.exports = function(Chart) {
 						}
 
 						if (tickOpts.display) {
-							var tickFontColor = valueOrDefault(tickOpts.fontColor instanceof Array ? tickOpts.fontColor[index] : tickOpts.fontColor, globalDefaults.defaultFontColor);
+							if (Object.prototype.toString.call( tickOpts.fontColor ) === '[object Array]') {
+								var tickFontColor = valueOrDefault(tickOpts.fontColor[index], globalDefaults.defaultFontColor);
+							} else {
+								var tickFontColor = valueOrDefault(tickOpts.fontColor, globalDefaults.defaultFontColor);
+							}
 							ctx.font = tickLabelFont;
 
 							ctx.save();
@@ -504,7 +524,13 @@ module.exports = function(Chart) {
 
 							if (tickOpts.showLabelBackdrop) {
 								var labelWidth = ctx.measureText(label).width;
-								ctx.fillStyle = tickOpts.backdropColor[index] || 'rgba(255,255,255,0.75)';
+								if (Object.prototype.toString.call( tickOpts.backdropColor ) === '[object Array]') {
+									var backdropFontColor = valueOrDefault(tickOpts.backdropColor[index], globalDefaults.defaultFontColor);
+								} else {
+									var backdropFontColor = valueOrDefault(tickOpts.backdropColor, globalDefaults.defaultFontColor);
+								}
+								//ctx.fillStyle = tickOpts.backdropColor;
+								ctx.fillStyle = backdropFontColor;
 								ctx.fillRect(
 									-labelWidth / 2 - tickOpts.backdropPaddingX,
 									-yCenterOffset - tickFontSize / 2 - tickOpts.backdropPaddingY,
