@@ -116,6 +116,36 @@ function parseLineHeight(options) {
 		helpers.valueOrDefault(options.fontSize, defaults.global.defaultFontSize));
 }
 
+function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+
+	if (typeof stroke == "undefined" ) {
+		stroke = true;
+	}
+
+	if (typeof radius === "undefined") {
+		radius = 5;
+	}
+	ctx.beginPath();
+	ctx.moveTo(x + radius, y);
+	ctx.lineTo(x + width - radius, y);
+	ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+	ctx.lineTo(x + width, y + height - radius);
+	ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+	ctx.lineTo(x + radius, y + height);
+	ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+	ctx.lineTo(x, y + radius);
+	ctx.quadraticCurveTo(x, y, x + radius, y);
+	ctx.closePath();
+
+	if (stroke) {
+		ctx.stroke();
+	}
+
+	if (fill) {
+		ctx.fill();
+	}
+}
+
 module.exports = Element.extend({
 	/**
 	 * Get the padding needed for the scale
@@ -616,8 +646,8 @@ module.exports = Element.extend({
 
 		return me.beginAtZero ? 0 :
 			min < 0 && max < 0 ? max :
-			min > 0 && max > 0 ? min :
-			0;
+				min > 0 && max > 0 ? min :
+					0;
 	},
 
 	/**
@@ -870,12 +900,18 @@ module.exports = Element.extend({
 					var labelWidth = context.measureText(itemToDraw.label).width;
 					context.fillStyle = backdropFontColor;
 
-					context.fillRect(
+					/*context.fillRect(
 						labelWidth + 4,
 						- tickFont.size / 2 - 2,
 						- labelWidth - 8,
 						tickFont.size + 2 * 2
-					);
+					);*/
+
+
+					roundRect(context, - labelWidth / 2 - 2,
+						- tickFont.size / 2 ,
+						labelWidth * 1.7,
+						tickFont.size + 1 ,5,true,false);
 
 					//alert ( optionTicks.backdropPaddingX);
 
@@ -901,12 +937,12 @@ module.exports = Element.extend({
 					for (var i = 0; i < lineCount; ++i) {
 						// We just make sure the multiline element is a string here..
 						context.fillStyle = itemToDraw.major ? majorTickFontColor : tickFontColor
-						context.fillText('' + label[i], 0, y);
+						context.fillText('' + label[i], -2, y);
 						// apply same lineSpacing as calculated @ L#320
 						y += lineHeight;
 					}
 				} else {
-					context.fillText(label, 0, 0);
+					context.fillText(label, -4, 0);
 				}
 				context.restore();
 			}
